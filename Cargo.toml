@@ -1,8 +1,32 @@
 [package]
-name = "hermezcli"
+name = "hermez-cli"
 version = "0.1.0"
 edition = "2024"
+description = "Expose your localhost to the internet"
+license = "MIT"
+
+[[bin]]
+name = "hermez"
+path = "src/main.rs"
 
 [dependencies]
-clap = "4.5.60"
-tokio = "1.49.0"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+colored = "2"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+byteorder = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
