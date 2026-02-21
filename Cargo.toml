@@ -23,6 +23,7 @@ anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 byteorder = "1"
+rpassword = "7"
 
 [profile.release]
 opt-level = "z"
