@@ -23,12 +23,10 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Login => {
-            // Phase 4
-            eprintln!("hermez login — not yet implemented");
+            auth::login::login().await?;
         }
         Commands::Logout => {
-            // Phase 4
-            eprintln!("hermez logout — not yet implemented");
+            auth::login::logout()?;
         }
         Commands::Http {
             port,
