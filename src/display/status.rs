@@ -1,3 +1,4 @@
+use crate::display::banner::print_banner;
 use crate::tunnel::connection::TunnelInfo;
 use colored::Colorize;
 use std::time::Duration;
@@ -11,7 +12,7 @@ impl StatusDisplay {
 
     pub fn show_connecting(&self, attempt: u32) {
         if attempt == 0 {
-            println!("Connecting to hermez...");
+            println!("{}", "Connecting to hermez...".dimmed());
         } else {
             println!("{} (attempt {})...", "Reconnecting".yellow(), attempt);
         }
@@ -19,7 +20,7 @@ impl StatusDisplay {
 
     pub fn show_connected(&self, info: &TunnelInfo) {
         println!();
-        println!("{}", "hermez".bold().magenta());
+        print_banner();
         println!();
         println!("{} {}", "Tunnel:".bold(), info.public_url.green().bold());
         println!(
