@@ -12,6 +12,8 @@ path = "src/main.rs"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+http = "1"
 reqwest = { version = "0.13", features = ["json"] }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
@@ -24,6 +26,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 byteorder = "1"
 rpassword = "7"
+rand = "0.9"
 
 [profile.release]
 opt-level = "z"
