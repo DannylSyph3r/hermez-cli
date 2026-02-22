@@ -1,6 +1,4 @@
-use crate::auth::config::{
-    Config, ServerConfig, UserInfo, delete_config, load_config, save_config,
-};
+use crate::auth::config::{Config, UserInfo, delete_config, load_config, save_config};
 use crate::error::HermezError;
 use colored::Colorize;
 use serde::Deserialize;

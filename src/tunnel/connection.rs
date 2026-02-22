@@ -52,7 +52,7 @@ pub struct ConnectionConfig {
 /// An established tunnel connection, ready to run the message loop.
 pub struct TunnelConnection {
     pub tunnel_info: TunnelInfo,
-    stream: tokio_tungstenite::WebSocketStream
+    stream: tokio_tungstenite::WebSocketStream<
         tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
     >,
 }
@@ -98,7 +98,10 @@ impl TunnelConnection {
             local_port: config.local_port,
         };
 
-        Ok(Self { tunnel_info, stream })
+        Ok(Self {
+            tunnel_info,
+            stream,
+        })
     }
 
     pub fn tunnel_info(&self) -> &TunnelInfo {
@@ -245,7 +248,11 @@ async fn handle_message(
 }
 
 /// Spawn a task to forward one HTTP request and send the response frames back.
-fn spawn_forward(request: HttpRequestMessage, tx: mpsc::Sender<Message>, forwarder: Arc<HttpForwarder>) {
+fn spawn_forward(
+    request: HttpRequestMessage,
+    tx: mpsc::Sender<Message>,
+    forwarder: Arc<HttpForwarder>,
+) {
     tokio::spawn(async move {
         let started = Instant::now();
         let method = request.method.clone();
