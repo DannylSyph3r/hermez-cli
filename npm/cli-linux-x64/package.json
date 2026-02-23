@@ -1,0 +1,9 @@
+{
+  "name": "@hermez/cli-linux-x64",
+  "version": "0.1.0",
+  "description": "Linux x64 binary for @hermez/cli",
+  "license": "MIT",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "files": ["bin"]
+}

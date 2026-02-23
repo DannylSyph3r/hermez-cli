@@ -1,0 +1,22 @@
+{
+  "name": "@hermez/cli",
+  "version": "0.1.0",
+  "description": "Expose your localhost to the internet",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "hermez": "cli.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "optionalDependencies": {
+    "@hermez/cli-linux-x64": "0.1.0",
+    "@hermez/cli-linux-arm64": "0.1.0",
+    "@hermez/cli-darwin-x64": "0.1.0",
+    "@hermez/cli-darwin-arm64": "0.1.0",
+    "@hermez/cli-win32-x64": "0.1.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@hermez/cli-darwin-arm64",
+  "version": "0.1.0",
+  "description": "macOS arm64 binary for @hermez/cli",
+  "license": "MIT",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": ["bin"]
+}
