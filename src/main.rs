@@ -10,8 +10,10 @@ use std::sync::Arc;
 use anyhow::Result;
 use clap::Parser;
 use cli::commands::{Cli, Commands};
+use colored::Colorize;
 
-use crate::auth::config::load_config;
+use crate::auth::config::{config_path, load_config};
+use crate::auth::login::require_auth;
 use crate::display::status::StatusDisplay;
 use crate::tunnel::connection::{ConnectionConfig, TunnelConnection, TunnelError};
 use crate::tunnel::forwarder::HttpForwarder;
@@ -33,9 +35,11 @@ async fn main() -> Result<()> {
         Commands::Login => {
             auth::login::login().await?;
         }
+
         Commands::Logout => {
             auth::login::logout()?;
         }
+
         Commands::Http {
             port,
             subdomain,
@@ -43,15 +47,17 @@ async fn main() -> Result<()> {
             no_reconnect,
             request_timeout,
         } => {
-            let config = load_config()?
-                .ok_or_else(|| anyhow::anyhow!("Not authenticated. Run 'hermez login' first."))?;
+            // require_auth() checks HERMEZ_API_KEY env var first, falls back to config file.
+            let token = require_auth()?;
+            // Server config from file if present, otherwise defaults to hermez.one endpoints.
+            let server = load_config()?.map(|c| c.server).unwrap_or_default();
 
             let display = StatusDisplay::new();
             let forwarder = Arc::new(HttpForwarder::new(host.clone(), port, request_timeout));
 
             let conn_config = ConnectionConfig {
-                token: config.api_key,
-                tunnel_url: config.server.tunnel_url,
+                token,
+                tunnel_url: server.tunnel_url,
                 local_host: host,
                 local_port: port,
                 subdomain,
@@ -60,29 +66,51 @@ async fn main() -> Result<()> {
 
             let mut attempt: u32 = 0;
 
-            loop {
+            // Pin the ctrl_c future once and reuse it across all select! points in the loop.
+            let ctrl_c = tokio::signal::ctrl_c();
+            tokio::pin!(ctrl_c);
+
+            'outer: loop {
                 display.show_connecting(attempt);
 
-                match TunnelConnection::connect(&conn_config).await {
+                // Race connection attempt against Ctrl+C.
+                let connect_result = tokio::select! {
+                    result = TunnelConnection::connect(&conn_config) => result,
+                    _ = &mut ctrl_c => {
+                        println!();
+                        break 'outer;
+                    }
+                };
+
+                match connect_result {
                     Ok(connection) => {
                         attempt = 0;
                         display.show_connected(connection.tunnel_info());
 
-                        match connection.run(Arc::clone(&forwarder)).await {
+                        // Race the active tunnel against Ctrl+C.
+                        let run_result = tokio::select! {
+                            result = connection.run(Arc::clone(&forwarder)) => result,
+                            _ = &mut ctrl_c => {
+                                display.show_disconnected("Interrupted");
+                                break 'outer;
+                            }
+                        };
+
+                        match run_result {
                             Ok(()) => {
                                 display.show_disconnected("Tunnel closed");
-                                break;
+                                break 'outer;
                             }
                             Err(TunnelError::TunnelClosed { reason, .. }) => {
                                 display.show_disconnected(&reason);
                                 if no_reconnect {
-                                    break;
+                                    break 'outer;
                                 }
                             }
                             Err(TunnelError::HeartbeatTimeout) => {
                                 display.show_disconnected("Connection lost (heartbeat timeout)");
                                 if no_reconnect {
-                                    break;
+                                    break 'outer;
                                 }
                             }
                             Err(e) => {
@@ -93,6 +121,7 @@ async fn main() -> Result<()> {
                             }
                         }
                     }
+
                     Err(TunnelError::ConnectionFailed(401)) => {
                         eprintln!("Authentication failed. Run 'hermez login' to re-authenticate.");
                         return Err(anyhow::anyhow!("Authentication failed"));
@@ -113,16 +142,42 @@ async fn main() -> Result<()> {
                     }
                 }
 
+                // Race reconnect sleep against Ctrl+C.
                 let delay = ReconnectStrategy::delay_for_attempt(attempt);
                 display.show_reconnecting(delay);
-                tokio::time::sleep(delay).await;
+
+                tokio::select! {
+                    _ = tokio::time::sleep(delay) => {}
+                    _ = &mut ctrl_c => {
+                        println!();
+                        break 'outer;
+                    }
+                }
+
                 attempt += 1;
             }
         }
+
         Commands::Status => {
-            // Phase 8
-            eprintln!("hermez status — not yet implemented");
+            let path = config_path()?;
+            match load_config()? {
+                Some(config) => {
+                    println!(
+                        "{} Logged in as {}",
+                        "✓".green().bold(),
+                        config.user.email.bold()
+                    );
+                    println!("  Config: {}", path.display().to_string().dimmed());
+                }
+                None => {
+                    println!(
+                        "  Not logged in. Run {} to authenticate.",
+                        "'hermez login'".bold()
+                    );
+                }
+            }
         }
+
         Commands::Version => {
             println!("hermez {}", env!("CARGO_PKG_VERSION"));
             println!("Protocol version: 1");
