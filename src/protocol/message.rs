@@ -2,6 +2,7 @@
 /// CLI sends:   Pong, HttpResponse, HttpResponseStart/Chunk/End
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum ProtocolMessage {
     Ping,
     Pong,

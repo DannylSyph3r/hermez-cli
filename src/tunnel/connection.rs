@@ -32,6 +32,7 @@ pub enum TunnelError {
 
 /// Metadata returned by the server in the WebSocket upgrade response headers.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct TunnelInfo {
     pub tunnel_id: String,
     pub subdomain: String,
@@ -40,6 +41,7 @@ pub struct TunnelInfo {
 }
 
 /// Parameters needed to establish a tunnel connection.
+#[allow(dead_code)]
 pub struct ConnectionConfig {
     pub token: String,
     pub tunnel_url: String,

@@ -19,9 +19,4 @@ impl ReconnectStrategy {
         let secs = ((base_secs as f64) * jitter).round() as u64;
         Duration::from_secs(secs.max(1))
     }
-
-    /// 401, 403, 400 are terminal — reconnecting won't help.
-    pub fn is_non_retriable(status: u16) -> bool {
-        matches!(status, 401 | 403 | 400)
-    }
 }

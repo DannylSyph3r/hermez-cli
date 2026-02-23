@@ -11,12 +11,15 @@ pub enum HermezError {
     #[error("Connection failed: {0}")]
     ConnectionFailed(String),
 
+    #[allow(dead_code)]
     #[error("Subdomain unavailable: {0}")]
     SubdomainUnavailable(String),
 
+    #[allow(dead_code)]
     #[error("Local server not reachable at {host}:{port}")]
     LocalServerUnreachable { host: String, port: u16 },
 
+    #[allow(dead_code)]
     #[error("Protocol error: {0}")]
     Protocol(String),
 
