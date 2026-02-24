@@ -27,6 +27,9 @@ pub enum TunnelError {
     #[error("Connection rejected with HTTP {0}")]
     ConnectionFailed(u16),
 
+    #[error("Protocol error: {0}")]
+    ProtocolError(String),
+
     #[error("WebSocket error: {0}")]
     WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
 }
@@ -90,12 +93,16 @@ impl TunnelConnection {
             "X-Hermez-Local-Port",
             config.local_port.to_string().parse().unwrap(),
         );
-        request.headers_mut().insert(
-            "X-Hermez-Subdomain",
-            config.subdomain.as_deref().unwrap_or("").parse().unwrap(),
-        );
 
-        let (stream, response) = match connect_async(request).await {
+        // Only attach the subdomain header when the user explicitly provided one.
+        // Omitting it tells the server to assign a random subdomain.
+        if let Some(ref subdomain) = config.subdomain {
+            request
+                .headers_mut()
+                .insert("X-Hermez-Subdomain", subdomain.parse().unwrap());
+        }
+
+        let (mut stream, _response) = match connect_async(request).await {
             Ok(result) => result,
             Err(tokio_tungstenite::tungstenite::Error::Http(resp)) => {
                 return Err(TunnelError::ConnectionFailed(resp.status().as_u16()));
@@ -103,11 +110,35 @@ impl TunnelConnection {
             Err(e) => return Err(TunnelError::WebSocket(e)),
         };
 
-        let tunnel_info = TunnelInfo {
-            tunnel_id: extract_header(response.headers(), "x-hermez-tunnel-id"),
-            subdomain: extract_header(response.headers(), "x-hermez-subdomain"),
-            public_url: extract_header(response.headers(), "x-hermez-public-url"),
-            local_port: config.local_port,
+        // The server sends TUNNEL_CONNECTED as the very first message after registration,
+        let tunnel_info = match stream.next().await {
+            Some(Ok(Message::Binary(data))) => match MessageDecoder::decode(data.as_ref()) {
+                Ok(ProtocolMessage::TunnelConnected {
+                    tunnel_id,
+                    subdomain,
+                    public_url,
+                }) => TunnelInfo {
+                    tunnel_id,
+                    subdomain,
+                    public_url,
+                    local_port: config.local_port,
+                },
+                Ok(_) => {
+                    return Err(TunnelError::ProtocolError(
+                        "Expected TUNNEL_CONNECTED as first message from server".to_string(),
+                    ));
+                }
+                Err(e) => return Err(TunnelError::ProtocolError(e.to_string())),
+            },
+            Some(Ok(Message::Close(_))) | None => {
+                return Err(TunnelError::ConnectionFailed(0));
+            }
+            Some(Err(e)) => return Err(TunnelError::WebSocket(e)),
+            _ => {
+                return Err(TunnelError::ProtocolError(
+                    "Unexpected first message type from server".to_string(),
+                ));
+            }
         };
 
         Ok(Self {
@@ -281,12 +312,4 @@ fn spawn_forward(
 
         crate::display::request_log::log_request(&method, &path, status, started);
     });
-}
-
-fn extract_header(headers: &http::HeaderMap, name: &str) -> String {
-    headers
-        .get(name)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_string()
 }
