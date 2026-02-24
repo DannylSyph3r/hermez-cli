@@ -78,17 +78,32 @@ impl HttpForwarder {
     }
 
     fn error_response(&self, request_id: String, status: u16) -> HttpResponseMessage {
-        let body: &[u8] = match status {
-            502 => b"Bad Gateway: local server unreachable",
-            504 => b"Gateway Timeout: local server did not respond in time",
-            _ => b"Internal Server Error",
+        let (body, content_type) = match status {
+            502 => (
+                include_str!("../resources/error-pages/502.html")
+                    .replace("{{port}}", &self.target_port.to_string())
+                    .into_bytes(),
+                "text/html; charset=utf-8",
+            ),
+            504 => (
+                include_str!("../resources/error-pages/504.html")
+                    .replace("{{port}}", &self.target_port.to_string())
+                    .into_bytes(),
+                "text/html; charset=utf-8",
+            ),
+            _ => (
+                include_str!("../resources/error-pages/500.html")
+                    .to_string()
+                    .into_bytes(),
+                "text/html; charset=utf-8",
+            ),
         };
 
         HttpResponseMessage {
             request_id,
             status_code: status,
-            headers: vec![("content-type".to_string(), "text/plain".to_string())],
-            body: body.to_vec(),
+            headers: vec![("content-type".to_string(), content_type.to_string())],
+            body,
         }
     }
 }
