@@ -1,11 +1,12 @@
 use futures_util::{SinkExt, StreamExt};
-use http::Request;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 use tokio::sync::mpsc;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{
+    connect_async, tungstenite::Message, tungstenite::client::IntoClientRequest,
+};
 
 use crate::protocol::decoder::MessageDecoder;
 use crate::protocol::encoder::MessageEncoder;
@@ -73,17 +74,26 @@ impl TunnelConnection {
     pub async fn connect(config: &ConnectionConfig) -> Result<Self, TunnelError> {
         let connect_url = format!("{}/connect", config.tunnel_url.trim_end_matches('/'));
 
-        let request = Request::builder()
-            .uri(connect_url.as_str())
-            .header("Authorization", format!("Bearer {}", config.token))
-            .header("X-Hermez-Protocol-Version", "1")
-            .header("X-Hermez-Local-Port", config.local_port.to_string())
-            .header(
-                "X-Hermez-Subdomain",
-                config.subdomain.as_deref().unwrap_or(""),
-            )
-            .body(())
+        let mut request = connect_url
+            .as_str()
+            .into_client_request()
             .expect("failed to build WebSocket request");
+
+        request.headers_mut().insert(
+            "Authorization",
+            format!("Bearer {}", config.token).parse().unwrap(),
+        );
+        request
+            .headers_mut()
+            .insert("X-Hermez-Protocol-Version", "1".parse().unwrap());
+        request.headers_mut().insert(
+            "X-Hermez-Local-Port",
+            config.local_port.to_string().parse().unwrap(),
+        );
+        request.headers_mut().insert(
+            "X-Hermez-Subdomain",
+            config.subdomain.as_deref().unwrap_or("").parse().unwrap(),
+        );
 
         let (stream, response) = match connect_async(request).await {
             Ok(result) => result,
