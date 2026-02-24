@@ -45,6 +45,7 @@ impl MessageDecoder {
 
         match message_type {
             0x01 => Ok(ProtocolMessage::Ping),
+            0x03 => Self::decode_tunnel_connected(&mut cursor),
             0x10 => Self::decode_http_request(&mut cursor),
             0x12 => Self::decode_http_request_start(&mut cursor),
             0x13 => Self::decode_http_request_chunk(&mut cursor),
@@ -79,6 +80,23 @@ impl MessageDecoder {
             headers,
             body,
         }))
+    }
+
+    fn decode_tunnel_connected(cursor: &mut Cursor<&[u8]>) -> Result<ProtocolMessage, DecodeError> {
+        let id_len = cursor.read_u16::<BigEndian>()? as usize;
+        let tunnel_id = read_string(cursor, id_len)?;
+
+        let sub_len = cursor.read_u16::<BigEndian>()? as usize;
+        let subdomain = read_string(cursor, sub_len)?;
+
+        let url_len = cursor.read_u16::<BigEndian>()? as usize;
+        let public_url = read_string(cursor, url_len)?;
+
+        Ok(ProtocolMessage::TunnelConnected {
+            tunnel_id,
+            subdomain,
+            public_url,
+        })
     }
 
     fn decode_http_request_start(

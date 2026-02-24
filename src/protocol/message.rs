@@ -1,4 +1,4 @@
-/// CLI receives: Ping, HttpRequest, HttpRequestStart/Chunk/End, TunnelClose, Error
+/// CLI receives: Ping, HttpRequest, HttpRequestStart/Chunk/End, TunnelClose, Error, TunnelConnected
 /// CLI sends:   Pong, HttpResponse, HttpResponseStart/Chunk/End
 
 #[derive(Debug)]
@@ -6,6 +6,11 @@
 pub enum ProtocolMessage {
     Ping,
     Pong,
+    TunnelConnected {
+        tunnel_id: String,
+        subdomain: String,
+        public_url: String,
+    },
     HttpRequest(HttpRequestMessage),
     HttpResponse(HttpResponseMessage),
     HttpRequestStart {
