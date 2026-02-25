@@ -22,18 +22,71 @@ struct ValidateData {
     valid: bool,
 }
 
+enum KeyStatus {
+    /// Server confirmed the key is still valid.
+    Valid,
+    /// Server returned 401 — key has been revoked or deleted.
+    Revoked,
+    /// Network unreachable — cannot verify, fail open.
+    Unreachable,
+}
+
+/// Silently validates a stored API key without any user-visible output.
+/// Used on login entry to detect stale/revoked keys before showing the prompt.
+async fn validate_stored_key(api_key: &str) -> KeyStatus {
+    let url = format!("{}{}", API_URL, VALIDATE_ENDPOINT);
+    let client = reqwest::Client::new();
+
+    let result = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .send()
+        .await;
+
+    match result {
+        Ok(response) => {
+            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+                KeyStatus::Revoked
+            } else if response.status().is_success() {
+                // Also check the valid field in the body — handles soft-revoked keys
+                match response.json::<ApiResponse<ValidateData>>().await {
+                    Ok(body) if body.data.valid => KeyStatus::Valid,
+                    _ => KeyStatus::Revoked,
+                }
+            } else {
+                // Any other server error — fail open, don't block the user
+                KeyStatus::Unreachable
+            }
+        }
+        // Network error — fail open
+        Err(_) => KeyStatus::Unreachable,
+    }
+}
+
 pub async fn login() -> Result<(), HermezError> {
-    // Check if already logged in and prompt before overwriting
     if let Some(existing) = load_config()? {
-        print!(
-            "Already logged in as {}. Log in as a different account? [y/N]: ",
-            existing.user.email.bold()
-        );
-        std::io::stdout().flush().ok();
-        let mut response = String::new();
-        std::io::stdin().read_line(&mut response).ok();
-        if !response.trim().eq_ignore_ascii_case("y") {
-            return Ok(());
+        match validate_stored_key(&existing.api_key).await {
+            KeyStatus::Revoked => {
+                // Key is dead — wipe it and go straight to re-auth
+                delete_config()?;
+                println!(
+                    "{} Your stored API key is no longer valid. Please log in again.",
+                    "!".yellow().bold()
+                );
+            }
+            KeyStatus::Valid | KeyStatus::Unreachable => {
+                // Key is good or we can't verify — show the normal already-logged-in prompt
+                print!(
+                    "Already logged in as {}. Log in as a different account? [y/N]: ",
+                    existing.user.email.bold()
+                );
+                std::io::stdout().flush().ok();
+                let mut response = String::new();
+                std::io::stdin().read_line(&mut response).ok();
+                if !response.trim().eq_ignore_ascii_case("y") {
+                    return Ok(());
+                }
+            }
         }
     }
 
