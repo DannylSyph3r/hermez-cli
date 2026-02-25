@@ -4,7 +4,8 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "hermez",
     about = "Expose your localhost to the internet",
-    version
+    version,
+    override_usage = "hermez [command] [flags]"
 )]
 pub struct Cli {
     #[command(subcommand)]

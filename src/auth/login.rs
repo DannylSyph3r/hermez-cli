@@ -1,7 +1,8 @@
-use crate::auth::config::{Config, UserInfo, delete_config, load_config, save_config};
+use crate::auth::config::{API_URL, Config, UserInfo, delete_config, load_config, save_config};
 use crate::error::HermezError;
 use colored::Colorize;
 use serde::Deserialize;
+use std::io::Write;
 
 const VALIDATE_ENDPOINT: &str = "/api/v1/api-keys/validate";
 
@@ -11,7 +12,7 @@ struct ApiResponse<T> {
     data: T,
 }
 
-// Matches ApiKeyValidationResponse after our backend fix
+// Matches ApiKeyValidationResponse from the backend service
 #[derive(Deserialize)]
 struct ValidateData {
     #[serde(rename = "userId")]
@@ -22,6 +23,20 @@ struct ValidateData {
 }
 
 pub async fn login() -> Result<(), HermezError> {
+    // Check if already logged in and prompt before overwriting
+    if let Some(existing) = load_config()? {
+        print!(
+            "Already logged in as {}. Log in as a different account? [y/N]: ",
+            existing.user.email.bold()
+        );
+        std::io::stdout().flush().ok();
+        let mut response = String::new();
+        std::io::stdin().read_line(&mut response).ok();
+        if !response.trim().eq_ignore_ascii_case("y") {
+            return Ok(());
+        }
+    }
+
     let api_key = rpassword::prompt_password("Enter your API key: ")
         .map_err(|e| HermezError::Config(format!("Failed to read API key: {}", e)))?;
 
@@ -39,10 +54,7 @@ pub async fn login() -> Result<(), HermezError> {
         ));
     }
 
-    // Load default server config or existing one
-    let server = load_config()?.map(|c| c.server).unwrap_or_default();
-
-    let url = format!("{}{}", server.api_url, VALIDATE_ENDPOINT);
+    let url = format!("{}{}", API_URL, VALIDATE_ENDPOINT);
 
     let client = reqwest::Client::new();
     let response = client
@@ -83,7 +95,6 @@ pub async fn login() -> Result<(), HermezError> {
             email: body.data.email.clone(),
             tier: body.data.tier,
         },
-        server,
     };
 
     save_config(&config)?;

@@ -14,6 +14,7 @@ use colored::Colorize;
 
 use crate::auth::config::{config_path, load_config};
 use crate::auth::login::require_auth;
+use crate::display::banner::print_banner;
 use crate::display::status::StatusDisplay;
 use crate::tunnel::connection::{ConnectionConfig, TunnelConnection, TunnelError};
 use crate::tunnel::forwarder::HttpForwarder;
@@ -28,6 +29,13 @@ async fn main() -> Result<()> {
         )
         .with_target(false)
         .init();
+
+    if std::env::args().len() == 1 {
+        print_banner();
+        println!();
+        Cli::parse_from(["hermez", "--help"]);
+        return Ok(());
+    }
 
     let cli = Cli::parse();
 
@@ -49,15 +57,13 @@ async fn main() -> Result<()> {
         } => {
             // require_auth() checks HERMEZ_API_KEY env var first, falls back to config file.
             let token = require_auth()?;
-            // Server config from file if present, otherwise defaults to hermez.one endpoints.
-            let server = load_config()?.map(|c| c.server).unwrap_or_default();
 
             let display = StatusDisplay::new();
             let forwarder = Arc::new(HttpForwarder::new(host.clone(), port, request_timeout));
 
             let conn_config = ConnectionConfig {
                 token,
-                tunnel_url: server.tunnel_url,
+                tunnel_url: auth::config::TUNNEL_URL.to_string(),
                 local_host: host,
                 local_port: port,
                 subdomain,
@@ -101,9 +107,10 @@ async fn main() -> Result<()> {
                                 display.show_disconnected("Tunnel closed");
                                 break 'outer;
                             }
-                            Err(TunnelError::TunnelClosed { reason, .. }) => {
+                            Err(TunnelError::TunnelClosed { reason, code }) => {
                                 display.show_disconnected(&reason);
-                                if no_reconnect {
+                                // dashboard_close is an intentional user action — never reconnect
+                                if code == "dashboard_close" || no_reconnect {
                                     break 'outer;
                                 }
                             }
@@ -124,19 +131,19 @@ async fn main() -> Result<()> {
 
                     Err(TunnelError::FatalClose(msg)) => {
                         eprintln!("{}", msg);
-                        return Err(anyhow::anyhow!(msg));
+                        std::process::exit(1);
                     }
                     Err(TunnelError::ConnectionFailed(401)) => {
                         eprintln!("Authentication failed. Run 'hermez login' to re-authenticate.");
-                        return Err(anyhow::anyhow!("Authentication failed"));
+                        std::process::exit(1);
                     }
                     Err(TunnelError::ConnectionFailed(403)) => {
                         eprintln!("Access denied. The subdomain may be reserved by another user.");
-                        return Err(anyhow::anyhow!("Access denied"));
+                        std::process::exit(1);
                     }
                     Err(TunnelError::ConnectionFailed(400)) => {
                         eprintln!("Invalid request. Check your subdomain name.");
-                        return Err(anyhow::anyhow!("Invalid request"));
+                        std::process::exit(1);
                     }
                     Err(e) => {
                         display.show_connection_failed(&e.to_string());

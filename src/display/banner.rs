@@ -16,4 +16,6 @@ pub fn print_banner() {
         println!("{}", line.bold().truecolor(159, 43, 104));
     }
     println!("{}", TAGLINE.italic().truecolor(78, 81, 128));
+    println!();
+    println!("{}", "─".repeat(60).truecolor(0, 188, 212));
 }

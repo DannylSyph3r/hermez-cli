@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-const API_URL: &str = "https://api.hermez.one";
-const TUNNEL_URL: &str = "wss://api.hermez.one";
+pub const API_URL: &str = "https://api.hermez.one";
+pub const TUNNEL_URL: &str = "wss://api.hermez.one";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub api_key: String,
+    /// Display-only: cached from the server at login time, the server always validates from the token itself.
     pub user: UserInfo,
-    pub server: ServerConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,21 +18,6 @@ pub struct UserInfo {
     pub id: String,
     pub email: String,
     pub tier: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServerConfig {
-    pub api_url: String,
-    pub tunnel_url: String,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            api_url: API_URL.to_string(),
-            tunnel_url: TUNNEL_URL.to_string(),
-        }
-    }
 }
 
 pub fn config_dir() -> Result<PathBuf, HermezError> {
