@@ -18,6 +18,9 @@ const OUTBOUND_CHANNEL_SIZE: usize = 64;
 
 #[derive(Debug, Error)]
 pub enum TunnelError {
+    #[error("{0}")]
+    FatalClose(String),
+
     #[error("Tunnel closed by server: {reason} ({code})")]
     TunnelClosed { reason: String, code: String },
 
@@ -32,6 +35,29 @@ pub enum TunnelError {
 
     #[error("WebSocket error: {0}")]
     WebSocket(#[from] tokio_tungstenite::tungstenite::Error),
+}
+
+/// Maps a known fatal WebSocket close reason to a user-friendly error message.
+/// Returns None for transient/unknown reasons, which fall through to the reconnect loop.
+fn fatal_close_message(reason: &str) -> Option<&'static str> {
+    match reason {
+        "Tunnel limit reached" => Some(
+            "Error: You've reached your active tunnel limit. Close an existing tunnel or upgrade your plan.",
+        ),
+        "Subdomain not reserved" => Some(
+            "Error: Subdomain not reserved. Reserve it first or omit --subdomain for a random subdomain.",
+        ),
+        "Subdomain reserved by another user" => {
+            Some("Error: That subdomain is reserved by another user.")
+        }
+        "Subdomain in use" => Some("Error: That subdomain is currently in use by another session."),
+        "Invalid or expired token" => {
+            Some("Error: Not authenticated. Run 'hermez login' to re-authenticate.")
+        }
+        "Invalid subdomain" => Some("Error: Invalid subdomain format."),
+        "Subdomain not allowed" => Some("Error: That subdomain is not allowed."),
+        _ => None,
+    }
 }
 
 /// Metadata returned by the server in the WebSocket upgrade response headers.
@@ -130,7 +156,14 @@ impl TunnelConnection {
                 }
                 Err(e) => return Err(TunnelError::ProtocolError(e.to_string())),
             },
-            Some(Ok(Message::Close(_))) | None => {
+            Some(Ok(Message::Close(frame))) => {
+                let reason = frame.as_ref().map(|f| f.reason.as_ref()).unwrap_or("");
+                if let Some(fatal_msg) = fatal_close_message(reason) {
+                    return Err(TunnelError::FatalClose(fatal_msg.to_string()));
+                }
+                return Err(TunnelError::ConnectionFailed(0));
+            }
+            None => {
                 return Err(TunnelError::ConnectionFailed(0));
             }
             Some(Err(e)) => return Err(TunnelError::WebSocket(e)),

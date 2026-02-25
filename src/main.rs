@@ -122,6 +122,10 @@ async fn main() -> Result<()> {
                         }
                     }
 
+                    Err(TunnelError::FatalClose(msg)) => {
+                        eprintln!("{}", msg);
+                        return Err(anyhow::anyhow!(msg));
+                    }
                     Err(TunnelError::ConnectionFailed(401)) => {
                         eprintln!("Authentication failed. Run 'hermez login' to re-authenticate.");
                         return Err(anyhow::anyhow!("Authentication failed"));
