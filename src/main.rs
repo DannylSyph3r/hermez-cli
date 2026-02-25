@@ -22,6 +22,13 @@ use crate::tunnel::reconnect::ReconnectStrategy;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Enable ANSI colour support on Windows CMD and older terminals
+    #[cfg(windows)]
+    {
+        if colored::control::set_virtual_terminal(true).is_err() {
+            colored::control::set_override(false);
+        }
+    }
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()

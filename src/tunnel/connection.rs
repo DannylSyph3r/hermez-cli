@@ -47,10 +47,12 @@ fn fatal_close_message(reason: &str) -> Option<&'static str> {
         "Subdomain not reserved" => Some(
             "Error: Subdomain not reserved. Reserve it first or omit --subdomain for a random subdomain.",
         ),
-        "Subdomain reserved by another user" => {
-            Some("Error: That subdomain is reserved by another user.")
+        "Subdomain reserved by another user" | "Subdomain in use" => {
+            Some("Error: That subdomain is not available.")
         }
-        "Subdomain in use" => Some("Error: That subdomain is currently in use by another session."),
+        "Subdomain in use by your session" => {
+            Some("Error: That subdomain is already in use by one of your active tunnels.")
+        }
         "Invalid or expired token" => {
             Some("Error: Not authenticated. Run 'hermez login' to re-authenticate.")
         }
