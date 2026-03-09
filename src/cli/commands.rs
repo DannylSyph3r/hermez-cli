@@ -5,7 +5,8 @@ use clap::{Parser, Subcommand};
     name = "hermez",
     about = "Expose your localhost to the internet",
     version,
-    override_usage = "hermez [command] [flags]"
+    override_usage = "hermez [command] [flags]",
+    after_help = "Common flags for 'hermez http':\n  -s, --subdomain <NAME>   Request a specific subdomain (e.g. myapp or myapp.hermez.one)\n  -H, --host <HOST>        Local hostname to forward to [default: localhost]\n      --no-reconnect       Disable automatic reconnection on disconnect\n\nExamples:\n  hermez http 3000\n  hermez http 3000 --subdomain myapp\n  hermez http 3000 --subdomain myapp.hermez.one"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -43,7 +44,10 @@ pub enum Commands {
     },
 
     /// Show current authentication status
-    Status,
+    Whoami,
+
+    /// Update the hermez CLI to the latest version
+    Update,
 
     /// Print version information
     Version,

@@ -68,6 +68,16 @@ async fn main() -> Result<()> {
             let display = StatusDisplay::new();
             let forwarder = Arc::new(HttpForwarder::new(host.clone(), port, request_timeout));
 
+            let subdomain = subdomain.map(|s| {
+                if let Some(prefix) = s.strip_suffix(".hermez.one") {
+                    prefix.to_string()
+                } else if let Some(prefix) = s.strip_suffix(".hermez.online") {
+                    prefix.to_string()
+                } else {
+                    s
+                }
+            });
+
             let conn_config = ConnectionConfig {
                 token,
                 tunnel_url: auth::config::TUNNEL_URL.to_string(),
@@ -153,7 +163,14 @@ async fn main() -> Result<()> {
                         std::process::exit(1);
                     }
                     Err(e) => {
-                        display.show_connection_failed(&e.to_string());
+                        let msg = match &e {
+                            TunnelError::WebSocket(tokio_tungstenite::tungstenite::Error::Io(
+                                _,
+                            )) => "Cannot reach tunnel.hermez.one. Check your internet connection."
+                                .to_string(),
+                            _ => e.to_string(),
+                        };
+                        display.show_connection_failed(&msg);
                         if no_reconnect {
                             return Err(e.into());
                         }
@@ -176,7 +193,7 @@ async fn main() -> Result<()> {
             }
         }
 
-        Commands::Status => {
+        Commands::Whoami => {
             let path = config_path()?;
             match load_config()? {
                 Some(config) => {
@@ -192,6 +209,43 @@ async fn main() -> Result<()> {
                         "  Not logged in. Run {} to authenticate.",
                         "'hermez login'".bold()
                     );
+                }
+            }
+        }
+
+        Commands::Update => {
+            let is_npm = std::env::current_exe()
+                .ok()
+                .and_then(|p| p.to_str().map(|s| s.to_string()))
+                .map(|p| p.contains("node_modules") || p.contains("@hermez"))
+                .unwrap_or(false);
+
+            if !is_npm {
+                println!("{} hermez was not installed via npm.", "!".yellow().bold());
+                println!(
+                    "  Please update manually. Visit {} for instructions.",
+                    "https://hermez.one/docs/cli".cyan()
+                );
+                return Ok(());
+            }
+
+            println!("{}", "Updating hermez CLI...".dimmed());
+
+            let status = std::process::Command::new("npm")
+                .args(["install", "-g", "@hermez/cli@latest"])
+                .status();
+
+            match status {
+                Ok(s) if s.success() => {
+                    println!("{} hermez CLI updated successfully.", "✓".green().bold());
+                }
+                Ok(_) => {
+                    eprintln!("{} Update failed. Try running manually:", "✗".red().bold());
+                    eprintln!("  npm install -g @hermez/cli@latest");
+                }
+                Err(_) => {
+                    eprintln!("{} Could not run npm. Is it installed?", "✗".red().bold());
+                    eprintln!("  Try: npm install -g @hermez/cli@latest");
                 }
             }
         }
