@@ -166,8 +166,10 @@ async fn main() -> Result<()> {
                         let msg = match &e {
                             TunnelError::WebSocket(tokio_tungstenite::tungstenite::Error::Io(
                                 _,
-                            )) => "Cannot reach tunnel.hermez.one. Check your internet connection."
-                                .to_string(),
+                            )) => {
+                                "Cannot reach tunnel.hermez.online. Check your internet connection."
+                                    .to_string()
+                            }
                             _ => e.to_string(),
                         };
                         display.show_connection_failed(&msg);
