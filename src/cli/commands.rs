@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
     about = "Expose your localhost to the internet",
     version,
     override_usage = "hermez [command] [flags]",
-    after_help = "Common flags for 'hermez http':\n  -s, --subdomain <NAME>   Request a specific subdomain (e.g. myapp or myapp.hermez.one)\n  -H, --host <HOST>        Local hostname to forward to [default: localhost]\n      --no-reconnect       Disable automatic reconnection on disconnect\n\nExamples:\n  hermez http 3000\n  hermez http 3000 --subdomain myapp\n  hermez http 3000 --subdomain myapp.hermez.one"
+    after_help = "Common flags for 'hermez http':\n  -s, --subdomain <NAME>    Request a specific subdomain\n      --domain <DOMAIN>     Use a custom domain (mutually exclusive with --subdomain)\n  -H, --host <HOST>         Local hostname to forward to [default: localhost]\n      --no-reconnect        Disable automatic reconnection on disconnect\n\nExamples:\n  hermez http 3000\n  hermez http 3000 --subdomain myapp\n  hermez http 3000 --domain tunnel.mycompany.com"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -26,9 +26,13 @@ pub enum Commands {
         /// Local port to tunnel (e.g. 3000)
         port: u16,
 
-        /// Request a specific subdomain
-        #[arg(short = 's', long)]
+        /// Request a specific subdomain (mutually exclusive with --domain)
+        #[arg(short = 's', long, conflicts_with = "domain")]
         subdomain: Option<String>,
+
+        /// Use your own custom domain (mutually exclusive with --subdomain)
+        #[arg(long, conflicts_with = "subdomain")]
+        domain: Option<String>,
 
         /// Local hostname to forward requests to
         #[arg(short = 'H', long, default_value = "localhost")]

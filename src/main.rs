@@ -58,6 +58,7 @@ async fn main() -> Result<()> {
         Commands::Http {
             port,
             subdomain,
+            domain,
             host,
             no_reconnect,
             request_timeout,
@@ -84,6 +85,7 @@ async fn main() -> Result<()> {
                 local_host: host,
                 local_port: port,
                 subdomain,
+                custom_domain: domain,
                 request_timeout,
             };
 

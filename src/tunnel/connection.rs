@@ -58,6 +58,15 @@ fn fatal_close_message(reason: &str) -> Option<&'static str> {
         }
         "Invalid subdomain" => Some("Error: Invalid subdomain format."),
         "Subdomain not allowed" => Some("Error: That subdomain is not allowed."),
+        "Custom domain not found" => Some(
+            "Error: Custom domain not found. Register it first under Custom Domains in the dashboard.",
+        ),
+        "Custom domain is not active" => Some(
+            "Error: Custom domain is not yet active. Complete DNS verification in the dashboard first.",
+        ),
+        "Custom domain not owned by authenticated user" => {
+            Some("Error: This custom domain belongs to a different account.")
+        }
         _ => None,
     }
 }
@@ -80,6 +89,7 @@ pub struct ConnectionConfig {
     pub local_host: String,
     pub local_port: u16,
     pub subdomain: Option<String>,
+    pub custom_domain: Option<String>,
     pub request_timeout: u64,
 }
 
@@ -122,12 +132,16 @@ impl TunnelConnection {
             config.local_port.to_string().parse().unwrap(),
         );
 
-        // Only attach the subdomain header when the user explicitly provided one.
-        // Omitting it tells the server to assign a random subdomain.
+        // Attach either the subdomain or the custom domain header — mutually exclusive.
+        // Omitting both tells the server to assign a random subdomain.
         if let Some(ref subdomain) = config.subdomain {
             request
                 .headers_mut()
                 .insert("X-Hermez-Subdomain", subdomain.parse().unwrap());
+        } else if let Some(ref domain) = config.custom_domain {
+            request
+                .headers_mut()
+                .insert("X-Hermez-Custom-Domain", domain.parse().unwrap());
         }
 
         let (mut stream, _response) = match connect_async(request).await {
