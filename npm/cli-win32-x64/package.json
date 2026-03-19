@@ -1,7 +1,7 @@
 {
-  "name": "@hermez/cli-win32-x64",
+  "name": "@hermez-tunnels/cli-win32-x64",
   "version": "0.1.0",
-  "description": "Windows x64 binary for @hermez/cli",
+  "description": "Windows x64 binary for @hermez-tunnels/cli",
   "license": "MIT",
   "os": ["win32"],
   "cpu": ["x64"],

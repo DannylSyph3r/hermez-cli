@@ -1,5 +1,5 @@
 {
-  "name": "@hermez/cli",
+  "name": "@hermez-tunnels/cli",
   "version": "0.1.0",
   "description": "Expose your localhost to the internet",
   "license": "MIT",
@@ -13,10 +13,10 @@
     "postinstall": "node install.js"
   },
   "optionalDependencies": {
-    "@hermez/cli-linux-x64": "0.1.0",
-    "@hermez/cli-linux-arm64": "0.1.0",
-    "@hermez/cli-darwin-x64": "0.1.0",
-    "@hermez/cli-darwin-arm64": "0.1.0",
-    "@hermez/cli-win32-x64": "0.1.0"
+    "@hermez-tunnels/cli-linux-x64": "0.1.0",
+    "@hermez-tunnels/cli-linux-arm64": "0.1.0",
+    "@hermez-tunnels/cli-darwin-x64": "0.1.0",
+    "@hermez-tunnels/cli-darwin-arm64": "0.1.0",
+    "@hermez-tunnels/cli-win32-x64": "0.1.0"
   }
 }
