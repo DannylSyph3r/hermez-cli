@@ -221,7 +221,7 @@ async fn main() -> Result<()> {
             let is_npm = std::env::current_exe()
                 .ok()
                 .and_then(|p| p.to_str().map(|s| s.to_string()))
-                .map(|p| p.contains("node_modules") || p.contains("@hermez"))
+                .map(|p| p.contains("node_modules") || p.contains("@hermez-tunnels"))
                 .unwrap_or(false);
 
             if !is_npm {
@@ -236,7 +236,7 @@ async fn main() -> Result<()> {
             println!("{}", "Updating hermez CLI...".dimmed());
 
             let status = std::process::Command::new("npm")
-                .args(["install", "-g", "@hermez/cli@latest"])
+                .args(["install", "-g", "@hermez-tunnels/cli@latest"])
                 .status();
 
             match status {
@@ -245,11 +245,11 @@ async fn main() -> Result<()> {
                 }
                 Ok(_) => {
                     eprintln!("{} Update failed. Try running manually:", "✗".red().bold());
-                    eprintln!("  npm install -g @hermez/cli@latest");
+                    eprintln!("  npm install -g @hermez-tunnels/cli@latest");
                 }
                 Err(_) => {
                     eprintln!("{} Could not run npm. Is it installed?", "✗".red().bold());
-                    eprintln!("  Try: npm install -g @hermez/cli@latest");
+                    eprintln!("  Try: npm install -g @hermez-tunnels/cli@latest");
                 }
             }
         }
