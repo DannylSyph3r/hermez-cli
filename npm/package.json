@@ -12,6 +12,10 @@
   "scripts": {
     "postinstall": "node install.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DannylSyph3r/hermez-cli.git"
+  },
   "optionalDependencies": {
     "@hermez-tunnels/cli-linux-x64": "0.1.0",
     "@hermez-tunnels/cli-linux-arm64": "0.1.0",
