@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub const API_URL: &str = "https://staging.api.hermez.one";
-pub const TUNNEL_URL: &str = "wss://staging.hermez.online";
+pub const TUNNEL_URL: &str = "wss://tunnel.staging.hermez.online";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
