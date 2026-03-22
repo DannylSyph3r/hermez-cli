@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-pub const API_URL: &str = "https://api.hermez.one";
-pub const TUNNEL_URL: &str = "wss://tunnel.hermez.online";
+pub const API_URL: &str = "https://staging.api.hermez.one";
+pub const TUNNEL_URL: &str = "wss://staging.hermez.online";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
