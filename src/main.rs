@@ -169,7 +169,7 @@ async fn main() -> Result<()> {
                             TunnelError::WebSocket(tokio_tungstenite::tungstenite::Error::Io(
                                 _,
                             )) => {
-                                "Cannot reach tunnel.hermez.online. Check your internet connection."
+                                "Cannot reach tunnel.staging.hermez.online. Check your internet connection."
                                     .to_string()
                             }
                             _ => e.to_string(),
